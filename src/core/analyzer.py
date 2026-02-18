@@ -20,8 +20,14 @@ class EmotionAnalyzer:
         self.running = False
         self.frame_count = 0
         self.last_deepface_time = 0
-        self.deepface_interval = 3  # seconds
+        self.deepface_interval = 0.15 # seconds
         self._worker_running = False
+        self.smoothed_probs = {e: 0.0 for e in Config.EMOTIONS}
+        self.smoothing_alpha = 0.25  # lower = smoother
+        self.label_hold_frames = 0
+        self.last_stable_emotion = "neutral"
+        self.label_stability_threshold = 3  # number of consistent wins before switching
+
 
     def load_custom_model(self):
         try:
@@ -51,6 +57,12 @@ class EmotionAnalyzer:
 
 
     def _analyze_thread(self, face_img):
+        now = time.time()
+        if now - self.last_deepface_time < self.deepface_interval:
+            self._worker_running = False
+            return
+        self.last_deepface_time = now
+
         if face_img is None or face_img.size == 0:
             self._worker_running = False
             return
@@ -80,8 +92,29 @@ class EmotionAnalyzer:
 
             if final_probs:
                 with self.lock:
-                    self.emotion_probs = final_probs
-                    self.current_emotion = max(final_probs, key=final_probs.get)
+                    # Initialize smoothed probs on first run
+                    if not any(self.smoothed_probs.values()):
+                        self.smoothed_probs = final_probs.copy()
+                    else:
+                        for k in self.smoothed_probs:
+                            self.smoothed_probs[k] = (
+                                self.smoothing_alpha * final_probs.get(k, 0.0)
+                                + (1 - self.smoothing_alpha) * self.smoothed_probs[k]
+                            )
+
+                    self.emotion_probs = self.smoothed_probs.copy()
+                    new_emotion = max(self.emotion_probs, key=self.emotion_probs.get)
+
+                    if new_emotion != self.last_stable_emotion:
+                        self.label_hold_frames += 1
+                        if self.label_hold_frames >= self.label_stability_threshold:
+                            self.last_stable_emotion = new_emotion
+                            self.label_hold_frames = 0
+                    else:
+                        self.label_hold_frames = 0
+
+                    self.current_emotion = self.last_stable_emotion
+
 
         except Exception as e:
             print(f"Analysis Error: {e}")
