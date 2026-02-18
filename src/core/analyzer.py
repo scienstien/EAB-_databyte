@@ -74,6 +74,7 @@ class EmotionAnalyzer:
                     if result and isinstance(result, list) and len(result) > 0:
                         emotion_data = result[0].get('emotion', {})
                         final_probs = {k.lower(): float(v)/100.0 for k, v in emotion_data.items()}
+                        final_probs.pop('disgust', None)
                 except Exception as e:
                     print(f"DeepFace analysis error: {e}")
 

@@ -14,7 +14,7 @@ class Config:
     
     # Model Settings
     # Path to the pre-trained model if available
-    MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'fer2013_mini_XCEPTION.102-0.66.hdf5')
+    MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tiny_XCEPTION_KDEF.hdf5')
     USE_DEEPFACE = True
     USE_CUSTOM_MODEL = True
     
@@ -35,13 +35,12 @@ class Config:
     
     
     # Emotions
-    EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
+    EMOTIONS = ['angry', 'fear', 'happy', 'sad', 'surprise', 'neutral']
     EMOTION_COLORS = {
         "happy": (0, 255, 255),    # Yellow/Cyan mix
         "sad": (255, 50, 50),      # Blue-ish
         "angry": (0, 0, 255),      # Red
         "surprise": (255, 0, 255), # Magenta
         "fear": (0, 165, 255),     # Orange
-        "disgust": (0, 255, 0),    # Green
         "neutral": (200, 200, 200) # Gray
     }

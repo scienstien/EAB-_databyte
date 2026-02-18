@@ -15,10 +15,29 @@ from src.utils.fps_counter import FPSCounter
 
 # Try MediaPipe first, fallback to simple detector
 try:
+    import os
+    import cv2
     import mediapipe as mp
-    from mediapipe.python.solutions import face_detection
+    from mediapipe.tasks import python
+    from mediapipe.tasks.python import vision
+
+    # Absolute path to your model (avoid Windows path nonsense)
+    BASE_DIR = os.path.dirname(__file__)
+    MODEL_PATH = os.path.join(BASE_DIR, "models", "blaze_face_short_range.tflite")
+
+    # Create FaceDetector
+    base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
+    options = vision.FaceDetectorOptions(
+        base_options=base_options,
+        running_mode=vision.RunningMode.VIDEO
+    )
+    face_detector = vision.FaceDetector.create_from_options(options)
+
+    print("✅ MediaPipe FaceDetector initialized")
     USE_MEDIAPIPE = True
-    print("✅ Using MediaPipe for face detection")
+
+
+    
 except ImportError:
     from src.core.face_detector import SimpleFaceDetector
     USE_MEDIAPIPE = False
@@ -34,11 +53,9 @@ def main():
     visualizer = Visualizer()
     
     # Face Detection
-    if USE_MEDIAPIPE:
-        mp_face_detection = face_detection
-        face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.7)
-    else:
+    if not USE_MEDIAPIPE:
         face_detection = SimpleFaceDetector()
+
     
     # FPS Calculation
     fps_counter = FPSCounter(window_size=30)
@@ -53,6 +70,7 @@ def main():
     print("✅ System Ready. Press 'q' to exit, 'r' to toggle recording.")
     
     try:
+        video_ts = 0
         while True:
             frame = camera.read()
             if frame is None: break
@@ -67,24 +85,24 @@ def main():
             face_coords = None
             
             if USE_MEDIAPIPE:
-                results = face_detection.process(rgb_frame)
-                
-                if results.detections:
-                    for detection in results.detections:
-                        bboxC = detection.location_data.relative_bounding_box
-                        x = int(bboxC.xmin * w)
-                        y = int(bboxC.ymin * h)
-                        bw = int(bboxC.width * w)
-                        bh = int(bboxC.height * h)
-                        
-                        # Ensure within bounds
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+                video_ts += 1
+                result = face_detector.detect_for_video(mp_image, video_ts)
+
+
+                if result.detections is not None and len(result.detections) > 0:
+                    for det in result.detections:
+                        bbox = det.bounding_box
+                        x, y, bw, bh = bbox.origin_x, bbox.origin_y, bbox.width, bbox.height
+
                         x, y = max(0, x), max(0, y)
-                        bw, bh = min(w-x, bw), min(h-y, bh)
-                        
+                        bw, bh = min(w - x, bw), min(h - y, bh)
+
                         if bw > 0 and bh > 0:
                             face_img = frame[y:y+bh, x:x+bw]
                             face_coords = (x, y, bw, bh)
-                            break # Only process first face
+                            break
+
             else:
                 # OpenCV Haar Cascade detection
                 faces = face_detection.detect(frame)
