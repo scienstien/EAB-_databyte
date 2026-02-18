@@ -47,7 +47,7 @@ class Visualizer:
             
         # 6. Draw Developer Info
         cv2.putText(frame, Config.DEV_NAME, (20, h - 40), self.font, 0.5, (150, 150, 150), 1)
-        cv2.putText(frame, Config.DEV_WEBSITE, (20, h - 20), self.font, 0.5, (100, 100, 255), 1)
+        
 
     def draw_face_box(self, frame, face_coords, emotion):
         x, y, w, h = face_coords

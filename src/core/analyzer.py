@@ -1,6 +1,7 @@
 import os
 import cv2
 import numpy as np
+import time
 import threading
 from deepface import DeepFace
 from tensorflow.keras.models import load_model
@@ -17,6 +18,10 @@ class EmotionAnalyzer:
         self.emotion_probs = {e: 0.0 for e in Config.EMOTIONS}
         self.lock = threading.Lock()
         self.running = False
+        self.frame_count = 0
+        self.last_deepface_time = 0
+        self.deepface_interval = 3  # seconds
+        self._worker_running = False
 
     def load_custom_model(self):
         try:
@@ -35,48 +40,43 @@ class EmotionAnalyzer:
         self.running = False
 
     def analyze(self, face_img):
-        """
-        Runs analysis in a separate thread to avoid blocking the UI.
-        """
-        if not self.running: return
-        
-        threading.Thread(target=self._analyze_thread, args=(face_img,)).start()
+        if not self.running:
+            return
+
+        if hasattr(self, "_worker_running") and self._worker_running:
+            return  # skip if previous analysis still running
+
+        self._worker_running = True
+        threading.Thread(target=self._analyze_thread, args=(face_img,), daemon=True).start()
+
 
     def _analyze_thread(self, face_img):
-        if face_img is None or face_img.size == 0: return
+        if face_img is None or face_img.size == 0:
+            self._worker_running = False
+            return
 
         try:
-            # 1. Custom Model Analysis (Fast)
             custom_probs = {}
             if self.custom_model:
                 roi = cv2.resize(face_img, (48, 48))
                 roi = roi.astype("float") / 255.0
                 roi = img_to_array(roi)
                 roi = np.expand_dims(roi, axis=0)
-                
+
                 preds = self.custom_model.predict(roi, verbose=0)[0]
                 custom_probs = {label: float(prob) for label, prob in zip(Config.EMOTIONS, preds)}
 
-            # 2. DeepFace Analysis (Accurate but Slower)
-            # We can skip DeepFace every few frames or run it less frequently if needed
-            # For now, let's rely on the custom model for speed if available, 
-            # or use DeepFace if custom model is missing.
-            
             final_probs = custom_probs
-            
-            if not final_probs: # Fallback to DeepFace if no custom model
+
+            if not final_probs:
                 try:
-                    # DeepFace expects BGR
                     result = DeepFace.analyze(face_img, actions=['emotion'], enforce_detection=False, silent=True)
                     if result and isinstance(result, list) and len(result) > 0:
                         emotion_data = result[0].get('emotion', {})
-                        # Normalize keys to lowercase and convert to 0-1 range
                         final_probs = {k.lower(): float(v)/100.0 for k, v in emotion_data.items()}
                 except Exception as e:
                     print(f"DeepFace analysis error: {e}")
-                    pass
 
-            # Update State
             if final_probs:
                 with self.lock:
                     self.emotion_probs = final_probs
@@ -84,6 +84,10 @@ class EmotionAnalyzer:
 
         except Exception as e:
             print(f"Analysis Error: {e}")
+
+        finally:
+            self._worker_running = False
+
 
     def get_results(self):
         with self.lock:

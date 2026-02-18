@@ -16,6 +16,7 @@ from src.utils.fps_counter import FPSCounter
 # Try MediaPipe first, fallback to simple detector
 try:
     import mediapipe as mp
+    from mediapipe.python.solutions import face_detection
     USE_MEDIAPIPE = True
     print("✅ Using MediaPipe for face detection")
 except ImportError:
@@ -34,7 +35,7 @@ def main():
     
     # Face Detection
     if USE_MEDIAPIPE:
-        mp_face_detection = mp.solutions.face_detection
+        mp_face_detection = face_detection
         face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.7)
     else:
         face_detection = SimpleFaceDetector()

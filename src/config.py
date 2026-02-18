@@ -31,8 +31,8 @@ class Config:
     THEME_COLOR = (0, 255, 255) # Cyan
     
     # Developer Info
-    DEV_NAME = "Shayan Taherkhani"
-    DEV_WEBSITE = "shayantaherkhani.ir"
+    DEV_NAME = "DataByte"
+    
     
     # Emotions
     EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
