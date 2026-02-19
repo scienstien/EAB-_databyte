@@ -25,9 +25,7 @@ data/
 *.zip
 *.tar.gz
 
-# Model files (except specific ones in root)
-models/
-checkpoints/
+
 
 # Recordings
 *.avi
