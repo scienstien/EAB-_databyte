@@ -12,6 +12,8 @@ from src.core.camera import VideoStream
 from src.core.analyzer import EmotionAnalyzer
 from src.ui.visualizer import Visualizer
 from src.utils.fps_counter import FPSCounter
+from src.core.background_generator import BackgroundGenerator
+bg_generator = BackgroundGenerator()
 
 # Try MediaPipe first, fallback to simple detector
 try:
@@ -119,7 +121,9 @@ def main():
             
             # 3. Get Results
             emotion, probs = analyzer.get_results()
-            
+            # background removal
+            if probs is not None:
+                frame = bg_generator.apply(frame, probs)
             # 4. Visualize
             if face_coords:
                 visualizer.draw_face_box(frame, face_coords, emotion)

@@ -20,7 +20,7 @@ class EmotionAnalyzer:
         self.running = False
         self.frame_count = 0
         self.last_deepface_time = 0
-        self.deepface_interval = 0.15 # seconds
+        self.deepface_interval = 0.21 # seconds
         self._worker_running = False
         self.smoothed_probs = {e: 0.0 for e in Config.EMOTIONS}
         self.smoothing_alpha = 0.25  # lower = smoother
