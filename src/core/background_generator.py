@@ -92,4 +92,7 @@ class BackgroundGenerator:
         output = np.where(condition, bg_resized, frame)
 
         return output
+    def get_current_background(self):
+        return self.current_background
+
 

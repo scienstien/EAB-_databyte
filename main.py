@@ -13,6 +13,9 @@ from src.core.analyzer import EmotionAnalyzer
 from src.ui.visualizer import Visualizer
 from src.utils.fps_counter import FPSCounter
 from src.core.background_generator import BackgroundGenerator
+import pygame
+pygame.mixer.init()
+happy_sound = pygame.mixer.Sound("sounds/yaaa!.wav")
 bg_generator = BackgroundGenerator()
 
 # Try MediaPipe first, fallback to simple detector
@@ -118,12 +121,29 @@ def main():
                 analyzer.analyze(face_img)
             
             frame_count += 1
-            
+            prev_emotion = None
+
             # 3. Get Results
             emotion, probs = analyzer.get_results()
+
+            prev_bg = bg_generator.get_current_background()
+
             # background removal
             if probs is not None:
                 frame = bg_generator.apply(frame, probs)
+            
+            ## play happy sound
+            current_bg = bg_generator.get_current_background()
+
+            if current_bg == "happy" and prev_bg != "happy":
+                try:
+                    happy_sound.play()
+                except Exception as e:
+                    print(f"Sound error: {e}")
+
+            prev_bg = current_bg
+
+
             # 4. Visualize
             if face_coords:
                 visualizer.draw_face_box(frame, face_coords, emotion)
